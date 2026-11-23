@@ -1,0 +1,33 @@
+name: payment-service
+command: java -Xmx1g -jar payment-service.jar
+cwd: C:/services/payment
+
+env:
+  SPRING_PROFILES_ACTIVE: prod
+
+restart:
+  policy: on-failure        # always | on-failure | never
+  max_retries: 5
+  backoff_ms: 1000
+
+limits:
+  hard_memory_max: 1.5GB    # Enforced via Win32 Job Objects / Linux cgroups v2
+  memory:
+    - threshold: 800MB
+      duration: 15s         # Must stay above threshold continuously for 15s
+      action: notify        # notify | restart | stop | exec
+      cooldown: 5m
+    - threshold: 1.2GB
+      duration: 5s
+      action: exec
+      run: "powershell -File ./scripts/heap_dump.ps1 {{PID}}"
+    - threshold: 1.4GB
+      duration: 5s
+      action: restart
+
+logs:
+  out: ./logs/payment.out.txt
+  err: ./logs/payment.err.txt
+  events: ./logs/payment.events.txt
+  max_size: 50MB            # Rotate to .1.txt, .2.txt when exceeded
+  max_backups: 3
